@@ -1,0 +1,5 @@
+# Test suite deps. Run on the host against the running docker-compose stack
+# (Kafka on localhost:29092, Postgres on localhost:5432).
+pytest==8.3.4
+confluent-kafka==2.8.0
+psycopg2-binary==2.9.10

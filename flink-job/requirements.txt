@@ -1,0 +1,3 @@
+# Pinned to match the Flink cluster version exactly (PyFlink's package version must
+# correspond to the cluster it submits jobs to).
+apache-flink==1.20.5

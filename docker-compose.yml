@@ -69,6 +69,71 @@ services:
       PLAYBACK_SPEED: ${PLAYBACK_SPEED:-1.0}
     restart: unless-stopped
 
+  # --- Flink session cluster -------------------------------------------------
+  # A real JobManager + TaskManager (not an embedded mini-cluster) because the
+  # rebuild orchestration (step 8) drives the JobManager REST API to cancel and
+  # resubmit the fold job. All flink-* services share the one pageledger-flink image.
+  flink-jobmanager:
+    image: pageledger-flink
+    build: ./flink-job
+    container_name: pageledger-flink-jobmanager
+    command: jobmanager
+    ports:
+      - "8081:8081"                                  # Flink web UI / REST API
+    environment:
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: flink-jobmanager
+        rest.address: flink-jobmanager
+        rest.bind-address: 0.0.0.0
+        parallelism.default: 1
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8081/overview >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 20s
+
+  flink-taskmanager:
+    image: pageledger-flink
+    build: ./flink-job
+    container_name: pageledger-flink-taskmanager
+    command: taskmanager
+    depends_on:
+      flink-jobmanager:
+        condition: service_healthy
+    environment:
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: flink-jobmanager
+        taskmanager.numberOfTaskSlots: 4
+        parallelism.default: 1
+
+  # One-shot: submits the stage-1 validation job to the running cluster, then exits.
+  flink-stage1-submitter:
+    image: pageledger-flink
+    build: ./flink-job
+    container_name: pageledger-flink-stage1-submitter
+    depends_on:
+      flink-jobmanager:
+        condition: service_healthy
+      flink-taskmanager:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      KAFKA_RAW_TOPIC: ${KAFKA_RAW_TOPIC:-wiki.events.raw}
+      KAFKA_VALID_TOPIC: ${KAFKA_VALID_TOPIC:-wiki.events.valid}
+      KAFKA_DEADLETTER_TOPIC: ${KAFKA_DEADLETTER_TOPIC:-wiki.events.deadletter}
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB:-pageledger}
+      POSTGRES_USER: ${POSTGRES_USER:-pageledger}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pageledger}
+    command: >
+      flink run -d -m flink-jobmanager:8081
+      -py /opt/flink/usrlib/stage1_validate.py
+    restart: on-failure
+
 volumes:
   kafka-data:
   postgres-data:
