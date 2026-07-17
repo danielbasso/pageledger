@@ -7,6 +7,7 @@ are exactly those in the schema design.
 Rebuild endpoints (POST /api/rebuild, GET /api/rebuild/status) are added in step 8.
 The static dashboard is mounted in step 7.
 """
+import asyncio
 import os
 from contextlib import asynccontextmanager
 
@@ -14,6 +15,8 @@ import asyncpg
 from fastapi import FastAPI, Query, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+
+import rebuild as rebuild_mod
 
 PG = dict(
     host=os.environ.get("POSTGRES_HOST", "postgres"),
@@ -27,6 +30,8 @@ PG = dict(
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.pool = await asyncpg.create_pool(**PG, min_size=1, max_size=10)
+    app.state.rebuild = {}          # in-memory live progress for the running rebuild
+    app.state.rebuild_lock = asyncio.Lock()
     try:
         yield
     finally:
@@ -114,6 +119,35 @@ async def page_history(wiki: str, page_title: str):
         "events": [dict(e) for e in events],
         "current": dict(current) if current else None,
     }
+
+
+@app.post("/api/rebuild")
+async def post_rebuild():
+    """Trigger a state rebuild. 409 if one is already running or within cooldown."""
+    async with app.state.rebuild_lock:
+        ok, reason = await rebuild_mod.can_start(app.state.pool)
+        if not ok:
+            return JSONResponse({"detail": reason}, status_code=409)
+        rebuild_id = await rebuild_mod.start(app.state.pool)
+    asyncio.create_task(rebuild_mod.run_rebuild(app, rebuild_id))
+    return JSONResponse({"rebuild_id": rebuild_id, "status": "running"}, status_code=202)
+
+
+@app.get("/api/rebuild/status")
+async def rebuild_status():
+    """Current or most recent rebuild, plus live progress while running."""
+    row = await app.state.pool.fetchrow("select * from rebuild_log order by id desc limit 1")
+    if row is None:
+        return {"status": None}
+    resp = dict(row)
+    st = app.state.rebuild
+    if row["status"] == "running" and st.get("rebuild_id") == row["id"]:
+        total = st.get("total") or 0
+        processed = st.get("processed") or 0
+        resp["total_known_events"] = total
+        resp["processed"] = processed
+        resp["progress"] = min(processed / total, 1.0) if total else 0.0
+    return resp
 
 
 @app.exception_handler(404)
