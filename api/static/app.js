@@ -39,6 +39,7 @@ async function getJSON(url) {
   if (!r.ok) throw new Error(`${url} -> ${r.status}`);
   return r.json();
 }
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 function icons() { if (window.lucide) lucide.createIcons(); }
 
 /* ---------- theme ---------- */
@@ -157,9 +158,80 @@ async function onRowClick(key) {
   }
 }
 
-/* ---------- rebuild (wired in step 9) ---------- */
-function runRebuild() {
-  /* step 9 wires POST /api/rebuild + progress polling here. */
+/* ---------- rebuild ---------- */
+let rebuildPolling = false;
+
+function applyRebuildStatus(s) {
+  const btn = document.getElementById("rebuildBtn");
+  const icon = document.getElementById("rebuildIcon");
+  const line = document.getElementById("rebuildStatus");
+  line.classList.remove("err");
+  if (s.status === "running") {
+    btn.disabled = true;
+    icon.classList.add("spin");
+    const total = s.total_known_events || 0;
+    const pct = Math.round((s.progress || 0) * 100);
+    line.textContent = `replaying ${fmtNum(total)} events… ${pct}%`;
+  } else if (s.status === "succeeded") {
+    btn.disabled = false;
+    icon.classList.remove("spin");
+    const d = s.discrepancy_count || 0;
+    line.textContent = `last rebuilt ${timeAgo(s.completed_at)} — ${fmtNum(d)} discrepanc${d === 1 ? "y" : "ies"}`;
+  } else if (s.status === "failed") {
+    btn.disabled = false;
+    icon.classList.remove("spin");
+    line.textContent = "rebuild failed — showing previous state";
+    line.classList.add("err");
+  } else {
+    btn.disabled = false;
+    icon.classList.remove("spin");
+    line.textContent = "";
+  }
+}
+
+async function driveRebuild() {
+  if (rebuildPolling) return;
+  rebuildPolling = true;
+  try {
+    while (true) {
+      let s;
+      try {
+        s = await getJSON("/api/rebuild/status");
+      } catch (e) {
+        await sleep(1000);
+        continue; // transient; the main poll shows the connection banner
+      }
+      applyRebuildStatus(s);
+      if (s.status !== "running") break;
+      await sleep(1000);
+    }
+  } finally {
+    rebuildPolling = false;
+  }
+}
+
+async function runRebuild() {
+  // optimistic: disable + spin immediately on click
+  document.getElementById("rebuildBtn").disabled = true;
+  document.getElementById("rebuildIcon").classList.add("spin");
+  const line = document.getElementById("rebuildStatus");
+  line.classList.remove("err");
+  line.textContent = "starting rebuild…";
+  try {
+    const r = await fetch("/api/rebuild", { method: "POST" });
+    if (r.status === 409) {
+      const b = await r.json().catch(() => ({}));
+      line.textContent = b.detail || "a rebuild is already in progress";
+      driveRebuild(); // reflect whatever is actually happening
+      return;
+    }
+    driveRebuild(); // 202 accepted — poll progress to completion
+  } catch (e) {
+    document.getElementById("rebuildBtn").disabled = false;
+    document.getElementById("rebuildIcon").classList.remove("spin");
+    line.textContent = "could not start rebuild";
+    line.classList.add("err");
+  }
 }
 
 /* ---------- poll loop ---------- */
@@ -175,6 +247,13 @@ async function poll() {
     renderFeed(feed);
     renderLeaderboard(leaderboard);
     setConnected(true);
+    // keep the rebuild status line fresh ("last rebuilt …"); if a rebuild is
+    // running (possibly started elsewhere), hand off to the faster poller.
+    if (!rebuildPolling) {
+      const rs = await getJSON("/api/rebuild/status");
+      applyRebuildStatus(rs);
+      if (rs.status === "running") driveRebuild();
+    }
   } catch (e) {
     // failure: freeze last-known data on screen, show the banner
     setConnected(false);

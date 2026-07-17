@@ -106,8 +106,14 @@ services:
         jobmanager.rpc.address: flink-jobmanager
         taskmanager.numberOfTaskSlots: 4
         parallelism.default: 1
-        taskmanager.memory.process.size: 3072m
+        # Repeated PyFlink job (re)submissions on a session cluster leak both
+        # metaspace and direct/off-heap memory (the Beam python runner). Size the
+        # TM generously so many rebuilds work; reclaim managed memory since the
+        # HashMap state backend (not RocksDB) is used.
+        taskmanager.memory.process.size: 4096m
         taskmanager.memory.jvm-metaspace.size: 1024m
+        taskmanager.memory.task.off-heap.size: 512m
+        taskmanager.memory.managed.size: 256m
         classloader.check-leaked-classloader: false
 
   # One-shot: submits the stage-1 validation job to the running cluster, then exits.

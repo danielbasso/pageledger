@@ -36,13 +36,18 @@ select count(*) from (
 """
 
 
+TERMINAL_STATES = {"CANCELED", "FINISHED", "FAILED"}
+
+
 # --- Flink REST helpers -----------------------------------------------------
-async def _running_stage2_jids(client: httpx.AsyncClient):
+async def _active_stage2_jids(client: httpx.AsyncClient):
+    """Any non-terminal stage-2 job (RUNNING, RESTARTING, INITIALIZING, …), so a
+    job wedged in a restart loop is still cancelled rather than left as a duplicate."""
     r = await client.get(f"{FLINK_REST}/jobs/overview")
     r.raise_for_status()
     return [
         j["jid"] for j in r.json().get("jobs", [])
-        if j["state"] == "RUNNING" and j["name"].startswith(STAGE2_PREFIX)
+        if j["state"] not in TERMINAL_STATES and j["name"].startswith(STAGE2_PREFIX)
     ]
 
 
@@ -147,7 +152,7 @@ async def run_rebuild(app, rebuild_id: int):
             await pool.execute("create table page_state_shadow (like page_state including all)")
 
             # 5. cancel the steady-state fold job(s)
-            for jid in await _running_stage2_jids(client):
+            for jid in await _active_stage2_jids(client):
                 await _cancel_job(client, jid)
                 await _wait_job_stopped(client, jid)
 
@@ -212,7 +217,7 @@ async def run_rebuild(app, rebuild_id: int):
                     await _cancel_job(client, shadow_jid)
                     await _wait_job_stopped(client, shadow_jid)
                 await pool.execute("drop table if exists page_state_shadow")
-                if not await _running_stage2_jids(client):
+                if not await _active_stage2_jids(client):
                     await _submit_stage2("page_state", STEADY_GROUP)
             except Exception:  # noqa: BLE001
                 pass
