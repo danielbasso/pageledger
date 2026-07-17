@@ -160,6 +160,29 @@ services:
       -py /opt/flink/usrlib/stage2_fold.py --sink-table page_state
     restart: on-failure
 
+  # --- API + dashboard -------------------------------------------------------
+  api:
+    build: ./api
+    container_name: pageledger-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB:-pageledger}
+      POSTGRES_USER: ${POSTGRES_USER:-pageledger}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pageledger}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; urllib.request.urlopen('http://localhost:8000/api/stats', timeout=3)\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
 volumes:
   kafka-data:
   postgres-data:
