@@ -1,0 +1,20 @@
+# Local environment (secrets / machine-specific) — .env.example is the tracked template
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# Terraform (added in step 11) — never commit state
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# OS / editor
+.DS_Store
+*.swp
