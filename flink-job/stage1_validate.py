@@ -28,6 +28,7 @@ from pyflink.datastream.connectors.jdbc import (
     JdbcSink,
 )
 from pyflink.datastream.connectors.kafka import (
+    KafkaOffsetResetStrategy,
     KafkaOffsetsInitializer,
     KafkaRecordSerializationSchema,
     KafkaSink,
@@ -204,7 +205,12 @@ def main() -> None:
         .set_bootstrap_servers(BOOTSTRAP)
         .set_topics(RAW_TOPIC)
         .set_group_id("flink-stage1-validate")
-        .set_starting_offsets(KafkaOffsetsInitializer.earliest())
+        # Resume from committed offsets (earliest on first run). Unlike stage 2, stage 1
+        # must NOT reprocess the whole raw log on every restart — doing so would
+        # re-publish the entire valid topic and double-feed the fold downstream.
+        .set_starting_offsets(
+            KafkaOffsetsInitializer.committed_offsets(KafkaOffsetResetStrategy.EARLIEST)
+        )
         .set_value_only_deserializer(SimpleStringSchema())
         .build()
     )
