@@ -54,6 +54,21 @@ services:
       retries: 15
       start_period: 10s
 
+  producer:
+    build: ./producer
+    container_name: pageledger-producer
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      MODE: ${MODE:-FIXTURE}                        # FIXTURE (default, local) | LIVE (prod)
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      KAFKA_RAW_TOPIC: ${KAFKA_RAW_TOPIC:-wiki.events.raw}
+      WIKI_STREAM_URL: ${WIKI_STREAM_URL:-https://stream.wikimedia.org/v2/stream/recentchange}
+      FIXTURE_FILE: ${FIXTURE_FILE:-./fixtures/wiki_events_sample.jsonl}
+      PLAYBACK_SPEED: ${PLAYBACK_SPEED:-1.0}
+    restart: unless-stopped
+
 volumes:
   kafka-data:
   postgres-data:
