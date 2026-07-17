@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PageLedger — live English Wikipedia activity</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@500;600;700&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="wrap">
+
+  <header class="app-header">
+    <div>
+      <h1>PageLedger</h1>
+      <p class="muted">Live English Wikipedia activity, event by event</p>
+    </div>
+    <button class="theme-btn" onclick="toggleTheme()" aria-label="Toggle dark mode" id="themeBtn">
+      <i data-lucide="sun" id="themeIcon"></i>
+    </button>
+  </header>
+
+  <div class="banner" id="connBanner" role="alert">
+    <i data-lucide="wifi-off"></i>
+    <span>Connection lost, retrying…</span>
+  </div>
+
+  <section class="stats" aria-label="Summary statistics">
+    <div class="stat-card"><div class="label">Events / min</div><div class="value mono" id="statEventsMin">—</div></div>
+    <div class="stat-card"><div class="label">Pages tracked</div><div class="value mono" id="statPages">—</div></div>
+    <div class="stat-card"><div class="label">Editors seen</div><div class="value mono" id="statEditors">—</div></div>
+    <div class="stat-card"><div class="label">Total events</div><div class="value mono" id="statTotal">—</div></div>
+  </section>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h3>Live event feed</h3>
+      <span class="faint mono" style="font-size:11px;">polling · 3s</span>
+    </div>
+    <div class="panel-body" id="feedBody">
+      <div class="empty-state" id="feedEmpty">
+        <i data-lucide="loader-2" class="spin"></i>
+        <span>Waiting for first events…</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><h3>Page leaderboard</h3></div>
+    <div class="panel-body">
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th class="num">Edits</th>
+            <th class="num">Net Δ</th>
+            <th>Last editor</th>
+            <th>Last edited</th>
+          </tr>
+        </thead>
+        <tbody id="leaderboardBody">
+          <tr id="leaderboardEmptyRow">
+            <td colspan="5">
+              <div class="empty-state">
+                <i data-lucide="loader-2" class="spin"></i>
+                <span id="leaderboardEmptyMsg">Waiting for first events…</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="rebuild-row">
+      <button class="btn-primary" onclick="runRebuild()" id="rebuildBtn">
+        <i data-lucide="refresh-cw" id="rebuildIcon"></i>
+        <span>Rebuild state</span>
+      </button>
+      <span class="rebuild-status mono" id="rebuildStatus"></span>
+    </div>
+  </div>
+
+  <footer class="app-footer">
+    <span class="faint">PageLedger</span>
+    <nav>
+      <a href="https://github.com/" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://www.linkedin.com/" target="_blank" rel="noopener">LinkedIn</a>
+    </nav>
+  </footer>
+
+</div>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="/app.js"></script>
+</body>
+</html>

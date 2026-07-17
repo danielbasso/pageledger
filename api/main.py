@@ -11,7 +11,9 @@ import os
 from contextlib import asynccontextmanager
 
 import asyncpg
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Request
+from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 
 PG = dict(
     host=os.environ.get("POSTGRES_HOST", "postgres"),
@@ -112,3 +114,15 @@ async def page_history(wiki: str, page_title: str):
         "events": [dict(e) for e in events],
         "current": dict(current) if current else None,
     }
+
+
+@app.exception_handler(404)
+async def not_found(request: Request, exc):
+    """Any non-API URL redirects to / — there's only one page (app-flow spec)."""
+    if request.url.path.startswith("/api"):
+        return JSONResponse({"detail": "not found"}, status_code=404)
+    return RedirectResponse("/")
+
+
+# Serve the single-page dashboard. Mounted last so /api routes take precedence.
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
