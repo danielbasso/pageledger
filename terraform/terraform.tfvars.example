@@ -1,0 +1,6 @@
+# Copy to terraform.tfvars and adjust. terraform.tfvars is gitignored.
+instance_type = "t3.medium"
+# SSH CIDR is auto-detected from your current public IP on each apply.
+# Only set this to pin a fixed CIDR (otherwise leave it unset):
+# allowed_ssh_cidr = "203.0.113.10/32"
+# ssh_public_key_path = "~/.ssh/id_rsa.pub"

@@ -9,11 +9,12 @@ __pycache__/
 .venv/
 venv/
 
-# Terraform (added in step 11) — never commit state
+# Terraform — never commit state or machine-specific vars
 *.tfstate
 *.tfstate.*
 .terraform/
 .terraform.lock.hcl
+terraform/terraform.tfvars
 
 # OS / editor
 .DS_Store
