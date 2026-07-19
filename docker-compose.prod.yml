@@ -1,0 +1,33 @@
+# Production overrides for the single EC2 instance. Use with:
+#   MODE=LIVE API_PORT=80 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# (MODE + API_PORT come from the instance's .env.)
+
+services:
+  kafka:
+    environment:
+      # Keep the event log forever: the rebuild replays wiki.events.valid from
+      # earliest, so it must not age out (default is 7 days).
+      KAFKA_LOG_RETENTION_MS: -1
+      KAFKA_HEAP_OPTS: -Xmx768m -Xms768m
+
+  # Flink memory tuned to fit the 8 GB box alongside Kafka + Postgres + API.
+  flink-jobmanager:
+    environment:
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: flink-jobmanager
+        rest.address: flink-jobmanager
+        rest.bind-address: 0.0.0.0
+        parallelism.default: 1
+        jobmanager.memory.process.size: 1024m
+
+  flink-taskmanager:
+    environment:
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: flink-jobmanager
+        taskmanager.numberOfTaskSlots: 4
+        parallelism.default: 1
+        taskmanager.memory.process.size: 3072m
+        taskmanager.memory.jvm-metaspace.size: 1024m
+        taskmanager.memory.task.off-heap.size: 512m
+        taskmanager.memory.managed.size: 256m
+        classloader.check-leaked-classloader: false
