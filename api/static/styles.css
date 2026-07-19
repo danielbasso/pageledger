@@ -1,5 +1,5 @@
-/* PageLedger dashboard — design tokens and components locked from the approved
-   mockup (the design mockup) and the design system. */
+/* PageLedger dashboard — design tokens and components (warm "editorial ledger"
+   palette, Bitter / Public Sans / IBM Plex Mono, light + dark). */
 
 :root[data-theme="light"] {
   --bg-primary: #F6F1E7;

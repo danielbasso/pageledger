@@ -1,11 +1,11 @@
 """Rebuild orchestration — the "Rebuild state" mechanism.
 
-Implements the schema design's procedure: it actually cancels and resubmits
-the real Flink fold job (stage 2) rather than faking a Python-side replay. The
-fold is rebuilt into a shadow table and only swapped into the live page_state on
-success, so a failed rebuild never leaves a broken leaderboard on screen.
+It actually cancels and resubmits the real Flink fold job (stage 2) rather than
+faking a Python-side replay. The fold is rebuilt into a shadow table and only
+swapped into the live page_state on success, so a failed rebuild never leaves a
+broken leaderboard on screen.
 
-Submission mechanism (a deliberate implementation choice): the API shells
+Submission mechanism: the API shells
 into the JobManager container via the Docker SDK to run the same `flink run -py`
 command used to submit stage 2 at startup — the proven path, no fragile
 REST-multipart python upload. Cancel + progress metrics use the Flink REST API.

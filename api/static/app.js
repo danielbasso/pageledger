@@ -1,5 +1,5 @@
-/* PageLedger dashboard — polling, row expansion, theme, connection handling.
-   Rebuild trigger + progress are wired in step 9; runRebuild() is a stub here. */
+/* PageLedger dashboard — polling, row expansion, theme, connection handling,
+   and the rebuild trigger + live progress. */
 
 const POLL_MS = 3000;
 const CHEVRON_SVG =

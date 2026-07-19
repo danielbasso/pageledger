@@ -1,6 +1,4 @@
 # PageLedger — the entire stack, identical on a laptop and a single EC2 instance.
-# step 1 brings up only the infrastructure services (Kafka + Postgres).
-# Application services (producer, flink-job, api) are added in their own phases.
 
 services:
   kafka:
@@ -71,8 +69,8 @@ services:
 
   # --- Flink session cluster -------------------------------------------------
   # A real JobManager + TaskManager (not an embedded mini-cluster) because the
-  # rebuild orchestration (step 8) drives the JobManager REST API to cancel and
-  # resubmit the fold job. All flink-* services share the one pageledger-flink image.
+  # rebuild orchestration drives the JobManager REST API to cancel and resubmit
+  # the fold job. All flink-* services share the one pageledger-flink image.
   flink-jobmanager:
     image: pageledger-flink
     build: ./flink-job
@@ -144,7 +142,7 @@ services:
     restart: on-failure
 
   # One-shot: submits the stage-2 fold job (silver -> gold), targeting page_state
-  # from earliest. step 8's rebuild resubmits this same job with --sink-table.
+  # from earliest. The rebuild resubmits this same job with --sink-table.
   flink-stage2-submitter:
     image: pageledger-flink
     build: ./flink-job

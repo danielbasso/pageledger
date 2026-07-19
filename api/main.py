@@ -1,11 +1,8 @@
 """PageLedger API — read-only endpoints over the gold read model.
 
 FastAPI + asyncpg (no ORM: the schema is two small tables). Every endpoint is a
-plain query against page_events / page_state, computed on request. The queries
-are exactly those in the schema design.
-
-Rebuild endpoints (POST /api/rebuild, GET /api/rebuild/status) are added in step 8.
-The static dashboard is mounted in step 7.
+plain query against page_events / page_state, computed on request. Rebuild
+endpoints live in rebuild.py; the static dashboard is mounted at the bottom.
 """
 import asyncio
 import os
@@ -43,7 +40,7 @@ app = FastAPI(title="PageLedger API", lifespan=lifespan)
 
 @app.get("/api/stats")
 async def stats():
-    """The four stat-card numbers (schema design's Stat Card Queries)."""
+    """The four stat-card numbers, computed on request (not maintained as counters)."""
     async with app.state.pool.acquire() as conn:
         events_per_min = await conn.fetchval(
             "select count(*) from page_events where ingested_at > now() - interval '1 minute'"
@@ -152,7 +149,7 @@ async def rebuild_status():
 
 @app.exception_handler(404)
 async def not_found(request: Request, exc):
-    """Any non-API URL redirects to / — there's only one page (app-flow spec)."""
+    """Any non-API URL redirects to / — there's only one page."""
     if request.url.path.startswith("/api"):
         return JSONResponse({"detail": "not found"}, status_code=404)
     return RedirectResponse("/")

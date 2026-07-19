@@ -18,7 +18,7 @@ from earliest converges to byte-identical state.
   unique_editors  = |{editor}|
   is_deleted      = False (v1 has no delete/restore events)
 
-Always started from earliest (see the schema design): since the fold is a
+Always started from earliest: since the fold is a
 pure function of the full history and every write is an idempotent upsert,
 "resume from offset" and "replay from earliest" converge to the same state.
 

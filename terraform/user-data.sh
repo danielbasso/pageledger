@@ -1,5 +1,5 @@
 #!/bin/bash
-# Infra bootstrap only (swap + Docker + Compose); app deployment is a manual step.
+# Infra bootstrap only (swap + Docker + Compose); app deployment is a separate manual step.
 set -euxo pipefail
 
 # Swap cushion for the JVM-heavy stack.

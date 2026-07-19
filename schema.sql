@@ -5,8 +5,6 @@
 -- Nothing in this schema is ever hand-written or manually seeded: page_events and
 -- page_state are populated exclusively by the Flink pipeline. There is no seed data
 -- for an event-sourced read model — only recorded events to replay.
---
--- Statements are verbatim from the schema design.
 
 -- ---------------------------------------------------------------------------
 -- page_events — append-only log of every validated event; the Postgres mirror
