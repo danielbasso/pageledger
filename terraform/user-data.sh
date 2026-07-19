@@ -16,11 +16,13 @@ dnf install -y docker
 systemctl enable --now docker
 usermod -aG docker ec2-user
 
-# --- Docker Compose v2 CLI plugin
+# --- Docker Compose + buildx CLI plugins (Compose v5 build needs buildx >= 0.17)
 mkdir -p /usr/local/lib/docker/cli-plugins
 curl -SL "https://github.com/docker/compose/releases/download/v5.3.1/docker-compose-linux-x86_64" \
   -o /usr/local/lib/docker/cli-plugins/docker-compose
-chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+curl -SL "https://github.com/docker/buildx/releases/download/v0.35.0/buildx-v0.35.0.linux-amd64" \
+  -o /usr/local/lib/docker/cli-plugins/docker-buildx
+chmod +x /usr/local/lib/docker/cli-plugins/docker-compose /usr/local/lib/docker/cli-plugins/docker-buildx
 
 # Completion marker, readable over SSH to confirm cloud-init finished.
 docker --version > /var/log/pageledger-bootstrap.log 2>&1
