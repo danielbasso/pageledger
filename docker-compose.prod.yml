@@ -27,9 +27,6 @@ services:
         rest.bind-address: 0.0.0.0
         parallelism.default: 1
         jobmanager.memory.process.size: 1024m
-        restart-strategy: fixed-delay
-        restart-strategy.fixed-delay.attempts: 2147483647
-        restart-strategy.fixed-delay.delay: 10 s
 
   flink-taskmanager:
     restart: unless-stopped

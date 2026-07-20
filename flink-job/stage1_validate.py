@@ -16,7 +16,7 @@ import json
 import os
 from datetime import datetime, timezone
 
-from pyflink.common import Row
+from pyflink.common import RestartStrategies, Row
 from pyflink.common.serialization import SimpleStringSchema
 from pyflink.common.typeinfo import Types
 from pyflink.common.watermark_strategy import WatermarkStrategy
@@ -199,6 +199,9 @@ def main() -> None:
     env = StreamExecutionEnvironment.get_execution_environment()
     env.set_parallelism(1)
     env.enable_checkpointing(10_000)  # 10s; with idempotent sinks this is ample
+    # Survive transient failures (e.g. a TaskManager restart) instead of dying.
+    env.set_restart_strategy(RestartStrategies.fixed_delay_restart(2147483647, 10_000))
+    env.get_checkpoint_config().set_tolerable_checkpoint_failure_number(100)
 
     source = (
         KafkaSource.builder()
