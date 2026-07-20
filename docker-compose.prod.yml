@@ -43,3 +43,27 @@ services:
         taskmanager.memory.task.off-heap.size: 512m
         taskmanager.memory.managed.size: 256m
         classloader.check-leaked-classloader: false
+
+  # Resubmits a pipeline job if it dies. Container restarts alone aren't enough:
+  # after a TaskManager crash the jobs end up FAILED and stay down.
+  flink-watchdog:
+    image: pageledger-flink
+    container_name: pageledger-flink-watchdog
+    restart: unless-stopped
+    depends_on:
+      flink-jobmanager:
+        condition: service_healthy
+    volumes:
+      - ./flink-job:/watchdog:ro
+    environment:
+      FLINK_JM_ADDRESS: flink-jobmanager:8081
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      KAFKA_RAW_TOPIC: ${KAFKA_RAW_TOPIC:-wiki.events.raw}
+      KAFKA_VALID_TOPIC: ${KAFKA_VALID_TOPIC:-wiki.events.valid}
+      KAFKA_DEADLETTER_TOPIC: ${KAFKA_DEADLETTER_TOPIC:-wiki.events.deadletter}
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB:-pageledger}
+      POSTGRES_USER: ${POSTGRES_USER:-pageledger}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pageledger}
+    entrypoint: ["/bin/bash", "/watchdog/watchdog.sh"]
