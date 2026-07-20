@@ -4,14 +4,22 @@
 
 services:
   kafka:
+    restart: unless-stopped
     environment:
       # Keep the event log forever: the rebuild replays wiki.events.valid from
       # earliest, so it must not age out (default is 7 days).
       KAFKA_LOG_RETENTION_MS: -1
       KAFKA_HEAP_OPTS: -Xmx768m -Xms768m
 
+  postgres:
+    restart: unless-stopped
+
   # Flink memory tuned to fit the 8 GB box alongside Kafka + Postgres + API.
+  # restart: unless-stopped is essential — repeated PyFlink submissions leak
+  # metaspace, so the TaskManager will eventually OOM; Docker must bring it back
+  # automatically or the pipeline stays dead.
   flink-jobmanager:
+    restart: unless-stopped
     environment:
       FLINK_PROPERTIES: |
         jobmanager.rpc.address: flink-jobmanager
@@ -19,15 +27,19 @@ services:
         rest.bind-address: 0.0.0.0
         parallelism.default: 1
         jobmanager.memory.process.size: 1024m
+        restart-strategy: fixed-delay
+        restart-strategy.fixed-delay.attempts: 2147483647
+        restart-strategy.fixed-delay.delay: 10 s
 
   flink-taskmanager:
+    restart: unless-stopped
     environment:
       FLINK_PROPERTIES: |
         jobmanager.rpc.address: flink-jobmanager
         taskmanager.numberOfTaskSlots: 4
         parallelism.default: 1
-        taskmanager.memory.process.size: 3072m
-        taskmanager.memory.jvm-metaspace.size: 1024m
+        taskmanager.memory.process.size: 3584m
+        taskmanager.memory.jvm-metaspace.size: 1536m
         taskmanager.memory.task.off-heap.size: 512m
         taskmanager.memory.managed.size: 256m
         classloader.check-leaked-classloader: false
