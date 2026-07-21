@@ -126,4 +126,4 @@ A few decisions that were load-bearing:
 
 ## Author
 
-**Daniel Basso Ribas** — [GitHub](https://github.com/danielbasso) · [LinkedIn](https://www.linkedin.com/)
+**Daniel Basso Ribas** — [GitHub](https://github.com/danielbasso) · [LinkedIn](https://www.linkedin.com/in/daniel-basso-ribas-b60215135/)
